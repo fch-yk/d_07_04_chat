@@ -72,6 +72,7 @@ async def read_chat(host, port, file_path):
                 await history_file.write(history_line)
 
             error_delay = 1
+
         except (ConnectionAbortedError, socket.gaierror) as fail:
             print(f'Unable to connect: {fail}', file=sys.stderr)
             await asyncio.sleep(error_delay)
@@ -79,18 +80,19 @@ async def read_chat(host, port, file_path):
             error_delay = 15
 
     writer.close()
+    await writer.wait_closed()
 
 if __name__ == '__main__':
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
     args = args_parser.parse_args()
-    with env.prefixed('LISTEN_'):
-        if args.host:
-            host = args.host
-        else:
-            host = env('HOST', 'minechat.dvmn.org')
+    if args.host:
+        host = args.host
+    else:
+        host = env('CHAT_HOST', 'minechat.dvmn.org')
 
+    with env.prefixed('LISTEN_'):
         if isinstance(args.port, int):
             port = args.port
         else:
