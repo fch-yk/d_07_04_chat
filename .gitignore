@@ -4,6 +4,7 @@ my_images/
 .vscode/
 tmp*.*
 *.code-workspace
+history.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
