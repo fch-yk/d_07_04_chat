@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 
 from environs import Env
 
@@ -7,6 +8,12 @@ from environs import Env
 def create_args_parser():
     description = ('Listen to Minecraft chat.')
     parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument(
+        '--debug_mode',
+        help='Turn on debug mode',
+        action="store_true",
+    )
 
     parser.add_argument(
         '--host',
@@ -51,22 +58,24 @@ async def submit_message(host, port, send_hash, message):
         port=port
     )
     response = await reader.readline()
-    print(response.decode().strip())
+    logging.debug('response: %s', response.decode().strip())
 
     writer.write(f'{send_hash}\n\n'.encode())
     await writer.drain()
+    logging.debug('submit: %s', send_hash)
 
     response = await reader.readline()
-    print(response.decode().strip())
+    logging.debug('response: %s', response.decode().strip())
 
     writer.write(f'{message}\n\n'.encode())
     await writer.drain()
+    logging.debug('submit: %s', message)
 
     writer.close()
     await writer.wait_closed()
 
 
-if __name__ == '__main__':
+def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
@@ -86,4 +95,15 @@ if __name__ == '__main__':
     else:
         send_hash = env('SEND_HASH', 'no hash')
 
+    debug_mode = args.debug_mode or env.bool('DEBUG_MODE', False)
+    if debug_mode:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(levelname)s [%(asctime)s]  %(message)s'
+        )
+
     asyncio.run(submit_message(host, port, send_hash, args.message))
+
+
+if __name__ == '__main__':
+    main()

@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import datetime
+import logging
 import socket
 import sys
 
@@ -11,6 +12,12 @@ from environs import Env
 def create_args_parser():
     description = ('Listen to Minecraft chat.')
     parser = argparse.ArgumentParser(description=description)
+
+    parser.add_argument(
+        '--debug_mode',
+        help='Turn on debug mode',
+        action="store_true",
+    )
 
     parser.add_argument(
         '--host',
@@ -34,6 +41,15 @@ def create_args_parser():
     return parser
 
 
+async def append_history_file(file_path, history_line):
+    async with aiofiles.open(
+        file_path,
+        mode='a',
+        encoding='utf-8'
+    ) as history_file:
+        await history_file.write(history_line)
+
+
 async def read_chat(host, port, file_path):
     reader = writer = None
     date_format = '%d.%m.%y %H:%M'
@@ -48,33 +64,24 @@ async def read_chat(host, port, file_path):
                 )
 
                 now = datetime.datetime.now()
-                history_line = f'[{now.strftime(date_format)}] Connected\n'
-                print(history_line, end='')
-                async with aiofiles.open(
-                    file_path,
-                    mode='a',
-                    encoding='utf-8'
-                ) as history_file:
-                    await history_file.write(history_line)
+                history_line = f'[{now.strftime(date_format)}] Connected'
+                logging.debug('listener: %s', history_line)
+                await append_history_file(file_path, f'{history_line}\n')
 
             message = await reader.readline()
             if reader.at_eof():
                 break
             now = datetime.datetime.now()
             history_line = f'[{now.strftime(date_format)}] {message.decode()}'
-            print(history_line, end='')
-
-            async with aiofiles.open(
-                file_path,
-                mode='a',
-                encoding='utf-8'
-            ) as history_file:
-                await history_file.write(history_line)
+            logging.debug('listener: %s', history_line.strip())
+            await append_history_file(file_path, history_line)
 
             error_delay = 1
 
         except (ConnectionAbortedError, socket.gaierror) as fail:
-            print(f'Unable to connect: {fail}', file=sys.stderr)
+            history_line = f'Unable to connect: {fail}'
+            logging.debug('listener: Unable to connect: %s', fail)
+            await append_history_file(file_path, f'{history_line}\n')
             await asyncio.sleep(error_delay)
             reader = None
             error_delay = 15
@@ -82,11 +89,13 @@ async def read_chat(host, port, file_path):
     writer.close()
     await writer.wait_closed()
 
-if __name__ == '__main__':
+
+def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
     args = args_parser.parse_args()
+
     if args.host:
         host = args.host
     else:
@@ -103,4 +112,15 @@ if __name__ == '__main__':
         else:
             file_path = env('FILE', 'history.txt')
 
+    debug_mode = args.debug_mode or env.bool('DEBUG_MODE', False)
+    if debug_mode:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(levelname)s [%(asctime)s]  %(message)s'
+        )
+
     asyncio.run(read_chat(host, port, file_path))
+
+
+if __name__ == '__main__':
+    main()
