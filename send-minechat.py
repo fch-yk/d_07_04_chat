@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 import logging
 
 from environs import Env
@@ -65,7 +66,16 @@ async def submit_message(host, port, send_hash, message):
     logging.debug('submit: %s', send_hash)
 
     response = await reader.readline()
-    logging.debug('response: %s', response.decode().strip())
+    decoded_response = response.decode().strip()
+    logging.debug('response: %s', decoded_response)
+    if json.loads(decoded_response) is None:
+        writer.close()
+        await writer.wait_closed()
+        logging.debug(
+            'Unknown token: %s. Check it or register again.',
+            send_hash
+        )
+        return
 
     writer.write(f'{message}\n\n'.encode())
     await writer.drain()
