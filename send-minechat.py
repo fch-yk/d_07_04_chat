@@ -73,9 +73,10 @@ async def authorise(host, port, token):
 
 
 async def submit_message(writer, message):
-    writer.write(f'{message}\n\n'.encode())
+    clear_message = message.replace('\n', '')
+    writer.write(f'{clear_message}\n\n'.encode())
     await writer.drain()
-    logging.debug('submit: %s', message)
+    logging.debug('submit: %s', clear_message)
 
 
 async def send_message_to_chat(host, port, token, message):

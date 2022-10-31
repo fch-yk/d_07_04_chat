@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import json
 import logging
 
 from environs import Env
@@ -63,9 +62,10 @@ async def register(host, port, token_path, nickname):
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
-    writer.write(f'{nickname}\n'.encode('utf-8'))
+    clear_nickname = nickname.replace('\n', '')
+    writer.write(f'{clear_nickname}\n'.encode('utf-8'))
     await writer.drain()
-    logging.debug('submit: the nickname: %s', nickname)
+    logging.debug('submit: the nickname: %s', clear_nickname)
 
     response = await reader.readline()
     decoded_response = response.decode().strip()
