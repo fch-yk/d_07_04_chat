@@ -2,19 +2,21 @@ import argparse
 import asyncio
 import json
 import logging
-from pathlib import Path
 
 from environs import Env
 
 
 def create_args_parser():
-    description = ('Listen to Minecraft chat.')
+    description = (
+        'The script registers the chat user: '
+        'it creates a token file, that contains your nickname and account hash'
+    )
     parser = argparse.ArgumentParser(description=description)
 
     parser.add_argument(
-        '--message',
-        metavar='{message}',
-        help='Your message to the chat',
+        '--nickname',
+        metavar='{nickname}',
+        help='Your nickname in the chat (obligatory)',
         required=True,
     )
 
@@ -40,21 +42,13 @@ def create_args_parser():
     parser.add_argument(
         '--token_path',
         metavar='{token path}',
-        help='A path to your token file (a token is your account hash)',
+        help='A path to a file to be created, token.json by default',
     )
 
     return parser
 
 
-async def register():
-    pass
-
-
-async def authorise():
-    pass
-
-
-async def submit_message(host, port, token, message):
+async def register(host, port, token_path, nickname):
     reader, writer = await asyncio.open_connection(
         host=host,
         port=port
@@ -62,25 +56,23 @@ async def submit_message(host, port, token, message):
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
-    writer.write(f'{token}\n\n'.encode())
+    writer.write('\n'.encode())
     await writer.drain()
-    logging.debug('submit: %s', token)
+    logging.debug('submit: the token request')
+
+    response = await reader.readline()
+    logging.debug('response: %s', response.decode().strip())
+
+    writer.write(f'{nickname}\n'.encode('utf-8'))
+    await writer.drain()
+    logging.debug('submit: the nickname: %s', nickname)
 
     response = await reader.readline()
     decoded_response = response.decode().strip()
     logging.debug('response: %s', decoded_response)
-    if json.loads(decoded_response) is None:
-        writer.close()
-        await writer.wait_closed()
-        logging.debug(
-            'Unknown token: %s. Check it or register again.',
-            token
-        )
-        return
 
-    writer.write(f'{message}\n\n'.encode())
-    await writer.drain()
-    logging.debug('submit: %s', message)
+    with open(token_path, "w", encoding="UTF-8") as token_file:
+        token_file.write(decoded_response)
 
     writer.close()
     await writer.wait_closed()
@@ -111,17 +103,9 @@ def main():
     if args.token_path:
         token_path = args.token_path
     else:
-        token_path = env('TOKEN_PATH', 'token.txt')
+        token_path = env('TOKEN_PATH', 'token.json')
 
-    if not Path(token_path).exists():
-        logging.debug('Invalid token file path: %s', token_path)
-        return
-
-    with open(token_path, 'r', encoding="UTF-8") as token_file:
-        token_text = token_file.read()
-
-    token = json.loads(token_text)['account_hash']
-    asyncio.run(submit_message(host, port, token, args.message))
+    asyncio.run(register(host, port, token_path, args.nickname))
 
 
 if __name__ == '__main__':

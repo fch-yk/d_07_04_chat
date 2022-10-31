@@ -5,6 +5,7 @@ my_images/
 tmp*.*
 *.code-workspace
 history.txt
+*token*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
