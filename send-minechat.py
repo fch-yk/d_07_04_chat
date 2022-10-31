@@ -46,15 +46,7 @@ def create_args_parser():
     return parser
 
 
-async def register():
-    pass
-
-
-async def authorise():
-    pass
-
-
-async def submit_message(host, port, token, message):
+async def authorise(host, port, token):
     reader, writer = await asyncio.open_connection(
         host=host,
         port=port
@@ -66,22 +58,30 @@ async def submit_message(host, port, token, message):
     await writer.drain()
     logging.debug('submit: %s', token)
 
+    authorized = True
     response = await reader.readline()
     decoded_response = response.decode().strip()
     logging.debug('response: %s', decoded_response)
     if json.loads(decoded_response) is None:
-        writer.close()
-        await writer.wait_closed()
         logging.debug(
             'Unknown token: %s. Check it or register again.',
             token
         )
-        return
+        authorized = False
 
+    return authorized, writer
+
+
+async def submit_message(writer, message):
     writer.write(f'{message}\n\n'.encode())
     await writer.drain()
     logging.debug('submit: %s', message)
 
+
+async def send_message_to_chat(host, port, token, message):
+    authorized, writer = await authorise(host, port, token)
+    if authorized:
+        await submit_message(writer, message)
     writer.close()
     await writer.wait_closed()
 
@@ -121,7 +121,7 @@ def main():
         token_text = token_file.read()
 
     token = json.loads(token_text)['account_hash']
-    asyncio.run(submit_message(host, port, token, args.message))
+    asyncio.run(send_message_to_chat(host, port, token, args.message))
 
 
 if __name__ == '__main__':
