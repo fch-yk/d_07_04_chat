@@ -8,7 +8,8 @@ Python 3.10 is required.
 
 ## Installing
 
-- Download the project files
+- Download the project files.
+- It is recommended to use [venv](https://docs.python.org/3/library/venv.html?highlight=venv#module-venv) for project isolation.
 - Set up packages:
 
 ```bash
