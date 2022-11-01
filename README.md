@@ -17,12 +17,12 @@ pip install -r requirements.txt
 ```
 
 - Set up environmental variables in your operating system or in .env file. The variables are:
-  - `DEBUG_MODE` is used to output logs, False by default;
-  - `CHAT_HOST` is a hostname, `minechat.dvmn.org` by default
-  - `LISTEN_PORT` is a port to listen the chat, 5000 by default
-  - `LISTEN_FILE` is a file path to write down the chat history
-  - `SEND_PORT` is a port to send a message or authorization data, 5000 by default
-  - `TOKEN_PATH` is a file path to your authorization token
+  - `DEBUG_MODE` is used to output logs, `False` by default;
+  - `CHAT_HOST` is a hostname, `minechat.dvmn.org` by default;
+  - `LISTEN_PORT` is a port to listen the chat, `5000` by default;
+  - `LISTEN_FILE` is a file path to write down the chat history, `history.txt` by default;
+  - `SEND_PORT` is a port to send a message or authorization data, `5000` by default;
+  - `TOKEN_PATH` is a file path to your authorization token, `token.json` by default.
 
 To set up variables in .env file, create it in the root directory of the project and fill it up like this:
 

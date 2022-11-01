@@ -40,7 +40,7 @@ def create_args_parser():
     parser.add_argument(
         '--token_path',
         metavar='{token path}',
-        help='A path to your token file (a token is your account hash)',
+        help='A path to your token file, token.json by default',
     )
 
     return parser
