@@ -112,7 +112,7 @@ def main():
     if args.token_path:
         token_path = args.token_path
     else:
-        token_path = env('TOKEN_PATH', 'token.txt')
+        token_path = env('TOKEN_PATH', 'token.json')
 
     if not Path(token_path).exists():
         logging.debug('Invalid token file path: %s', token_path)
