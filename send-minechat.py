@@ -46,7 +46,7 @@ def create_args_parser():
     return parser
 
 
-async def authorise(host, port, token):
+async def authorize(host, port, token):
     reader, writer = await asyncio.open_connection(
         host=host,
         port=port
@@ -80,7 +80,7 @@ async def submit_message(writer, message):
 
 
 async def send_message_to_chat(host, port, token, message):
-    authorized, writer = await authorise(host, port, token)
+    authorized, writer = await authorize(host, port, token)
     if authorized:
         await submit_message(writer, message)
     writer.close()

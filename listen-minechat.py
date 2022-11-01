@@ -3,7 +3,7 @@ import asyncio
 import datetime
 import logging
 import socket
-import sys
+
 
 import aiofiles
 from environs import Env
