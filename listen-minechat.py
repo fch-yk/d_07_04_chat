@@ -41,19 +41,11 @@ def create_args_parser():
     return parser
 
 
-async def append_history_file(file_path, history_line):
-    async with aiofiles.open(
-        file_path,
-        mode='a',
-        encoding='utf-8'
-    ) as history_file:
-        await history_file.write(history_line)
-
-
 async def read_chat(host, port, file_path):
     reader = writer = None
     date_format = '%d.%m.%y %H:%M'
     error_delay = 1
+    history_file = await aiofiles.open(file_path, mode='a', encoding='utf-8')
 
     while True:
         try:
@@ -66,7 +58,7 @@ async def read_chat(host, port, file_path):
                 now = datetime.datetime.now()
                 history_line = f'[{now.strftime(date_format)}] Connected'
                 logging.debug('listener: %s', history_line)
-                await append_history_file(file_path, f'{history_line}\n')
+                await history_file.write(f'{history_line}\n')
 
             message = await reader.readline()
             if reader.at_eof():
@@ -74,18 +66,19 @@ async def read_chat(host, port, file_path):
             now = datetime.datetime.now()
             history_line = f'[{now.strftime(date_format)}] {message.decode()}'
             logging.debug('listener: %s', history_line.strip())
-            await append_history_file(file_path, history_line)
+            await history_file.write(history_line)
 
             error_delay = 1
 
         except (ConnectionAbortedError, socket.gaierror) as fail:
             history_line = f'Unable to connect: {fail}'
             logging.debug('listener: Unable to connect: %s', fail)
-            await append_history_file(file_path, f'{history_line}\n')
+            await history_file.write(f'{history_line}\n')
             await asyncio.sleep(error_delay)
             reader = None
             error_delay = 15
 
+    await history_file.close()
     writer.close()
     await writer.wait_closed()
 
