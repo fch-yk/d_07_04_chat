@@ -4,6 +4,8 @@ import logging
 
 from environs import Env
 
+from chat import get_connection
+
 
 def create_args_parser():
     description = (
@@ -47,11 +49,7 @@ def create_args_parser():
     return parser
 
 
-async def register(host, port, token_path, nickname):
-    reader, writer = await asyncio.open_connection(
-        host=host,
-        port=port
-    )
+async def register(reader, writer, token_path, nickname):
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
@@ -74,11 +72,8 @@ async def register(host, port, token_path, nickname):
     with open(token_path, "w", encoding="UTF-8") as token_file:
         token_file.write(decoded_response)
 
-    writer.close()
-    await writer.wait_closed()
 
-
-def main():
+async def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
@@ -105,8 +100,10 @@ def main():
     else:
         token_path = env('TOKEN_PATH', 'token.json')
 
-    asyncio.run(register(host, port, token_path, args.nickname))
+    async with get_connection(host, port) as connection:
+        reader, writer = connection
+        await register(reader, writer, token_path, args.nickname)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

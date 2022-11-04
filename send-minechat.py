@@ -6,6 +6,8 @@ from pathlib import Path
 
 from environs import Env
 
+from chat import get_connection
+
 
 def create_args_parser():
     description = ('Listen to Minecraft chat.')
@@ -46,11 +48,8 @@ def create_args_parser():
     return parser
 
 
-async def authorize(host, port, token):
-    reader, writer = await asyncio.open_connection(
-        host=host,
-        port=port
-    )
+async def authorize(reader, writer, token):
+
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
@@ -69,7 +68,7 @@ async def authorize(host, port, token):
         )
         authorized = False
 
-    return authorized, writer
+    return authorized
 
 
 async def submit_message(writer, message):
@@ -79,15 +78,7 @@ async def submit_message(writer, message):
     logging.debug('submit: %s', clear_message)
 
 
-async def send_message_to_chat(host, port, token, message):
-    authorized, writer = await authorize(host, port, token)
-    if authorized:
-        await submit_message(writer, message)
-    writer.close()
-    await writer.wait_closed()
-
-
-def main():
+async def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
@@ -122,8 +113,14 @@ def main():
         token_text = token_file.read()
 
     token = json.loads(token_text)['account_hash']
-    asyncio.run(send_message_to_chat(host, port, token, args.message))
+
+    async with get_connection(host, port) as connection:
+        reader, writer = connection
+        authorized = await authorize(reader, writer, token)
+        if not authorized:
+            return
+        await submit_message(writer, args.message)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
