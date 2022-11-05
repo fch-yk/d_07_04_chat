@@ -90,9 +90,7 @@ async def main():
         return
 
     with open(token_path, 'r', encoding="UTF-8") as token_file:
-        token_text = token_file.read()
-
-    token = json.loads(token_text)['account_hash']
+        token = json.load(token_file)['account_hash']
 
     async with get_connection(host, port) as connection:
         reader, writer = connection
