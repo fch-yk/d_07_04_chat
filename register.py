@@ -4,7 +4,7 @@ import logging
 
 from environs import Env
 
-from chat import get_connection
+from chat import get_connection, submit_message
 
 
 def create_args_parser():
@@ -53,17 +53,14 @@ async def register(reader, writer, token_path, nickname):
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
-    writer.write('\n'.encode())
-    await writer.drain()
+    await submit_message(writer, '', 1)
     logging.debug('submit: the token request')
 
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
-    clear_nickname = nickname.replace('\n', '')
-    writer.write(f'{clear_nickname}\n'.encode('utf-8'))
-    await writer.drain()
-    logging.debug('submit: the nickname: %s', clear_nickname)
+    await submit_message(writer, nickname, 1)
+    logging.debug('submit: the nickname: %s', nickname)
 
     response = await reader.readline()
     decoded_response = response.decode().strip()

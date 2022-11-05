@@ -6,7 +6,7 @@ from pathlib import Path
 
 from environs import Env
 
-from chat import get_connection
+from chat import get_connection, submit_message
 
 
 def create_args_parser():
@@ -53,8 +53,7 @@ async def authorize(reader, writer, token):
     response = await reader.readline()
     logging.debug('response: %s', response.decode().strip())
 
-    writer.write(f'{token}\n\n'.encode())
-    await writer.drain()
+    await submit_message(writer, token, 2)
     logging.debug('submit: %s', token)
 
     authorized = True
@@ -69,13 +68,6 @@ async def authorize(reader, writer, token):
         authorized = False
 
     return authorized
-
-
-async def submit_message(writer, message):
-    clear_message = message.replace('\n', '')
-    writer.write(f'{clear_message}\n\n'.encode())
-    await writer.drain()
-    logging.debug('submit: %s', clear_message)
 
 
 async def main():
@@ -107,7 +99,8 @@ async def main():
         authorized = await authorize(reader, writer, token)
         if not authorized:
             return
-        await submit_message(writer, args.message)
+        await submit_message(writer, args.message, 2)
+        logging.debug('submit: %s', args.message)
 
 
 if __name__ == '__main__':
