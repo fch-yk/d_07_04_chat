@@ -60,7 +60,7 @@ async def authorize(reader, writer, token):
     response = await reader.readline()
     decoded_response = response.decode().strip()
     logging.debug('response: %s', decoded_response)
-    if json.loads(decoded_response) is None:
+    if not json.loads(decoded_response):
         logging.debug(
             'Unknown token: %s. Check it or register again.',
             token
