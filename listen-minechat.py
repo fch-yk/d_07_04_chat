@@ -93,21 +93,10 @@ def main():
     args_parser = create_args_parser()
     args = args_parser.parse_args()
 
-    if args.host:
-        host = args.host
-    else:
-        host = env('CHAT_HOST', 'minechat.dvmn.org')
-
+    host = args.host or env('CHAT_HOST', 'minechat.dvmn.org')
     with env.prefixed('LISTEN_'):
-        if isinstance(args.port, int):
-            port = args.port
-        else:
-            port = env.int('PORT', 5000)
-
-        if args.file_path:
-            file_path = args.file_path
-        else:
-            file_path = env('FILE', 'history.txt')
+        port = args.port or env.int('PORT', 5000)
+        file_path = args.file_path or env('FILE', 'history.txt')
 
     debug_mode = args.debug_mode or env.bool('DEBUG_MODE', False)
     if debug_mode:

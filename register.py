@@ -78,27 +78,15 @@ async def main():
     env.read_env()
     args_parser = create_args_parser()
     args = args_parser.parse_args()
-    if args.host:
-        host = args.host
-    else:
-        host = env('CHAT_HOST', 'minechat.dvmn.org')
-
-    if isinstance(args.port, int):
-        port = args.port
-    else:
-        port = env.int('SEND_PORT', 5050)
-
+    host = args.host or env('CHAT_HOST', 'minechat.dvmn.org')
+    port = args.port or env.int('SEND_PORT', 5050)
+    token_path = args.token_path or env('TOKEN_PATH', 'token.json')
     debug_mode = args.debug_mode or env.bool('DEBUG_MODE', False)
     if debug_mode:
         logging.basicConfig(
             level=logging.DEBUG,
             format='%(levelname)s [%(asctime)s]  %(message)s'
         )
-
-    if args.token_path:
-        token_path = args.token_path
-    else:
-        token_path = env('TOKEN_PATH', 'token.json')
 
     async with get_connection(host, port) as connection:
         reader, writer = connection
