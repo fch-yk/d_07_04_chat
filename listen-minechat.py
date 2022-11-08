@@ -45,46 +45,49 @@ def create_args_parser():
 async def read_chat(host, port, file_path):
     date_format = '%d.%m.%y %H:%M'
     error_delay = 1
-    history_file = await aiofiles.open(file_path, mode='a', encoding='utf-8')
     connection_fail = False
     writer = None
 
-    while True:
-        try:
-            async with get_connection(host, port) as connection:
-                reader, writer = connection
+    async with aiofiles.open(
+        file_path,
+        mode='a',
+        encoding='utf-8'
+    ) as history_file:
+        while True:
+            try:
+                async with get_connection(host, port) as connection:
+                    reader, writer = connection
 
-                now = datetime.datetime.now().strftime(date_format)
-                history_line = f'[{now}] Connected'
-                logging.debug('listener: %s', history_line)
-                await history_file.write(f'{history_line}\n')
-
-                while True:
-                    message = await reader.readline()
                     now = datetime.datetime.now().strftime(date_format)
-                    history_line = f'[{now}] {message.decode()}'
-                    logging.debug('listener: %s', history_line.strip())
-                    await history_file.write(history_line)
+                    history_line = f'[{now}] Connected'
+                    logging.debug('listener: %s', history_line)
+                    await history_file.write(f'{history_line}\n')
 
-                    error_delay = 1
-                    connection_fail = False
+                    while True:
+                        message = await reader.readline()
+                        now = datetime.datetime.now().strftime(date_format)
+                        history_line = f'[{now}] {message.decode()}'
+                        logging.debug('listener: %s', history_line.strip())
+                        await history_file.write(history_line)
 
-        except (ConnectionError, socket.gaierror) as fail:
-            history_line = f'Unable to connect: {fail}'
-            logging.debug('listener: Unable to connect: %s', fail)
-            await history_file.write(f'{history_line}\n')
-            connection_fail = True
+                        error_delay = 1
+                        connection_fail = False
 
-        finally:
-            await asyncio.sleep(error_delay)
-            error_delay = 15
-            if connection_fail:
-                continue
+            except (ConnectionError, socket.gaierror) as fail:
+                history_line = f'Unable to connect: {fail}'
+                logging.debug('listener: Unable to connect: %s', fail)
+                await history_file.write(f'{history_line}\n')
+                connection_fail = True
 
-            await history_file.close()
-            if writer:
-                writer.close()
-                await writer.wait_closed()
+            finally:
+                await asyncio.sleep(error_delay)
+                error_delay = 15
+                if connection_fail:
+                    continue
+
+                if writer:
+                    writer.close()
+                    await writer.wait_closed()
 
 
 def main():
