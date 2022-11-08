@@ -55,9 +55,7 @@ async def read_chat(host, port, file_path):
     ) as history_file:
         while True:
             try:
-                async with get_connection(host, port) as connection:
-                    reader, writer = connection
-
+                async with get_connection(host, port) as (reader, writer):
                     now = datetime.datetime.now().strftime(date_format)
                     history_line = f'[{now}] Connected'
                     logging.debug('listener: %s', history_line)
