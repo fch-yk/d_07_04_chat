@@ -42,53 +42,35 @@ def create_args_parser():
     return parser
 
 
-async def read_chat(host, port, file_path):
-    date_format = '%d.%m.%y %H:%M'
-    error_delay = 1
-    connection_fail = False
-    writer = None
-
-    async with aiofiles.open(
-        file_path,
-        mode='a',
-        encoding='utf-8'
-    ) as history_file:
+def reconnect(async_function):
+    async def wrap():
+        error_delay = 1
         while True:
             try:
-                async with get_connection(host, port) as (reader, writer):
-                    now = datetime.datetime.now().strftime(date_format)
-                    history_line = f'[{now}] Connected'
-                    logging.debug('listener: %s', history_line)
-                    await history_file.write(f'{history_line}\n')
-
-                    while True:
-                        message = await reader.readline()
-                        now = datetime.datetime.now().strftime(date_format)
-                        history_line = f'[{now}] {message.decode()}'
-                        logging.debug('listener: %s', history_line.strip())
-                        await history_file.write(history_line)
-
-                        error_delay = 1
-                        connection_fail = False
-
+                await async_function()
+                error_delay = 1
             except (ConnectionError, socket.gaierror) as fail:
-                history_line = f'Unable to connect: {fail}'
                 logging.debug('listener: Unable to connect: %s', fail)
-                await history_file.write(f'{history_line}\n')
-                connection_fail = True
-
-            finally:
                 await asyncio.sleep(error_delay)
-                error_delay = 15
-                if connection_fail:
-                    continue
+                error_delay = 5
 
-                if writer:
-                    writer.close()
-                    await writer.wait_closed()
+    return wrap
 
 
-def main():
+async def read_chat(reader, writer, file_path):
+    async with aiofiles.open(file_path, mode='a', encoding='utf-8') as file:
+        while True:
+            message = await reader.readline()
+            if reader.at_eof():
+                break
+            now = datetime.datetime.now().strftime('%d.%m.%y %H:%M')
+            history_line = f'[{now}] {message.decode()}'
+            logging.debug('listener: %s', history_line.strip())
+            await file.write(history_line)
+
+
+@reconnect
+async def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
@@ -106,8 +88,10 @@ def main():
             format='%(levelname)s [%(asctime)s]  %(message)s'
         )
 
-    asyncio.run(read_chat(host, port, file_path))
+    async with get_connection(host, port) as (reader, writer):
+        logging.debug('listener: Connected')
+        await read_chat(reader, writer, file_path)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
