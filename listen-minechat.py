@@ -43,21 +43,18 @@ def create_args_parser():
 
 
 def reconnect(async_function):
-    async def wrap():
-        error_delay = 1
+    async def wrap(host, port, file_path):
         while True:
             try:
-                error_delay = 1
-                await async_function()
+                await async_function(host, port, file_path)
             except (ConnectionError, socket.gaierror) as fail:
                 logging.debug('listener: Unable to connect: %s', fail)
-                await asyncio.sleep(error_delay)
-                error_delay = 5
+                await asyncio.sleep(5)
 
     return wrap
 
 
-async def read_chat(reader, writer, file_path):
+async def read_chat(reader, file_path):
     async with aiofiles.open(file_path, mode='a', encoding='utf-8') as file:
         while True:
             message = await reader.readline()
@@ -70,7 +67,13 @@ async def read_chat(reader, writer, file_path):
 
 
 @reconnect
-async def main():
+async def listen_chat(host, port, file_path):
+    async with get_connection(host, port) as (reader, _):
+        logging.debug('listener: Connected')
+        await read_chat(reader,  file_path)
+
+
+def main():
     env = Env()
     env.read_env()
     args_parser = create_args_parser()
@@ -88,10 +91,8 @@ async def main():
             format='%(levelname)s [%(asctime)s]  %(message)s'
         )
 
-    async with get_connection(host, port) as (reader, writer):
-        logging.debug('listener: Connected')
-        await read_chat(reader, writer, file_path)
+    asyncio.run(listen_chat(host, port, file_path))
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    main()
