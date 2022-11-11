@@ -47,8 +47,8 @@ def reconnect(async_function):
         error_delay = 1
         while True:
             try:
-                await async_function()
                 error_delay = 1
+                await async_function()
             except (ConnectionError, socket.gaierror) as fail:
                 logging.debug('listener: Unable to connect: %s', fail)
                 await asyncio.sleep(error_delay)
